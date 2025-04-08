@@ -1,39 +1,41 @@
 import React, { useState } from 'react';
 
-const Register = ({ loadUser, onRouteChange }) => {
-	const [registerName, setRegisterName] = useState('');
-	const [registerEmail, setRegisterEmail] = useState('');
-	const [registerPassword, setRegisterPassword] = useState('');
+const Register = ({ route, loadUser, onRouteChange }) => {
+	const [name, setName] = useState('');
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
 
 	const onNameChange = (event) => {
-		setRegisterName(event.target.value);
+		setName(event.target.value);
 	}
 
 	const onEmailChange = (event) => {
-		setRegisterEmail(event.target.value);
+		setEmail(event.target.value);
 	}
 
 	const onPasswordChange = (event) => {
-		setRegisterPassword(event.target.value);
+		setPassword(event.target.value);
 	}
 
-	const onSubmitRegister = () => {
+	const onSubmit = () => {
+		// fetch('http://localhost:3000/' + route, {
 		fetch('http://localhost:3000/register', {
 			method: 'post',
 			headers: {'Content-Type': 'application/json'},
 			body: JSON.stringify({
-				name: registerName,
-				email: registerEmail,
-				password: registerPassword
+				name: name,
+				email: email,
+				password: password
 			})
 		})
-			.then(response => response.json())
+			.then(res => res.json())
 			.then(user => {
-				if (user) {
+				if (user.id) {
 					loadUser(user)
 					onRouteChange('home')			
 				}
 			})
+			.catch(console.log)
 	}	
 
 	return (
@@ -42,6 +44,7 @@ const Register = ({ loadUser, onRouteChange }) => {
 				<main className="black-80">
 				  <div className="measure">
 				    <fieldset id="sign_up" className="ba b--transparent ph0 mh0">
+
 				      <legend className="f1 fw6 ph0 mh0 center">Register</legend>
 
 				      <div className="mt3">
@@ -76,10 +79,9 @@ const Register = ({ loadUser, onRouteChange }) => {
 				        	id="password" 
 				        />
 				      </div>
-				    </fieldset>
-				    <div className="center">
+				    </fieldset>				    <div className="center">
 				      <input 
-				      	onClick={onSubmitRegister}
+				      	onClick={onSubmit}
 				      	className="b ph3 pv2 input-reset ba b--black bg-transparent grow pointer f6 dib" 
 				      	type="submit" 
 				      	value="Register" 

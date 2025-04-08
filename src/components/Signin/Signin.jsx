@@ -1,33 +1,34 @@
 import React, {useState} from 'react';
 
-const Signin = ({ loadUser, onRouteChange }) => {
-	const [signInEmail, setSignInEmail] = useState('');
-	const [signInPassword, setSignInPassword] = useState('');
+const Signin = ({ route, loadUser, onRouteChange }) => {
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
 
 	const onEmailChange = (event) => {
-		setSignInEmail(event.target.value);
+		setEmail(event.target.value);
 	}
 
 	const onPasswordChange = (event) => {
-		setSignInPassword(event.target.value);
+		setPassword(event.target.value);
 	}
 
-	const onSubmitSignIn = () => {
+	const onSubmit = () => {
 		fetch('http://localhost:3000/signin', {
 			method: 'post',
 			headers: {'Content-Type': 'application/json'},
 			body: JSON.stringify({
-				email: signInEmail,
-				password: signInPassword
+				email: email,
+				password: password
 			})
 		})
-			.then(response => response.json())
+			.then(res => res.json())
 			.then(user => {
 				if (user.id) {
 					loadUser(user)
 					onRouteChange('home')			
 				}
 			})
+			.catch(console.log)
 	}
 
 	return (
@@ -62,7 +63,7 @@ const Signin = ({ loadUser, onRouteChange }) => {
 				    
 				    <div className="center">
 				      <input 
-				      	onClick={onSubmitSignIn}
+				      	onClick={onSubmit}
 				      	className="b ph3 pv2 input-reset ba b--black bg-transparent grow pointer f6 dib" 
 				      	type="submit" 
 				      	value="Sign in" 

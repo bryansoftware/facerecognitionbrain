@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import ParticlesBg from 'particles-bg'
 import './App.css'
 import Signin from './components/Signin/Signin'
 import Register from './components/Register/Register'
@@ -24,25 +23,6 @@ function App() {
     joined: ''
   })
 
-  // Your PAT (Personal Access Token) can be found in the Account's Security section
-  const PAT = '';
-  // Specify the correct user_id/app_id pairings
-  // Since you're making inferences outside your app's scope
-  const USER_ID = 'clarifai';
-  const APP_ID = 'main';
-  const MODEL_ID = 'face-detection';
-  // const MODEL_ID = 'color-recognition';
-  // const IMAGE_URL = 'https://samples.clarifai.com/metro-north.jpg';
-  const IMAGE_URL = imageUrl;
-
-  // useEffect(() => {
-  //   fetch('http://localhost:3000')
-  //   .then(response => response.json())
-  //   .then(data => {
-  //     console.log(data)
-  //   });
-  // }, []);
-
   const loadUser = (data) => {
     setUser({
       id: data.id,
@@ -56,6 +36,18 @@ function App() {
   const onRouteChange = (route) => {
     if (route === 'signout') {
         setIsSignedIn(false);
+        setUserInput('');
+        setImageUrl();
+        setBox({});
+        setRoute('signin');
+        setUser({
+          id: '',
+          name: '',
+          email: '',
+          password: '',
+          entries: 0,
+          joined: ''
+        })
     } else if (route === 'home') {
         setIsSignedIn(true);
     }
@@ -69,77 +61,53 @@ function App() {
   const onSubmitButtonClicked = () => {
     setImageUrl(userInput);
 
-    const raw = JSON.stringify({
-      "user_app_id": {
-        "user_id": USER_ID,
-        "app_id": APP_ID
-      },
-      "inputs": [
-        {
-          "data": {
-            "image": {
-              "url": IMAGE_URL
-            }
-          }
-        }
-      ]
-    });
-
-    const requestOptions = {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Key ' + PAT,
-        // 'Access-Control-Allow-Origin': '*',
-        // 'Access-Control-Allow-Methods': 'POST,GET,OPTIONS,PUT,DELETE'
-      },
-      body: raw
-    };
-
-    // fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/outputs", requestOptions)
-    fetch("http://cors-anywhere.herokuapp.com/https://api.clarifai.com/v2/models/"
-          + MODEL_ID 
-          + "/outputs", requestOptions) 
-      .then(response => {
-        response.json()
-
-        if (response) {
-          fetch('http://localhost:3000/image', {
-            method: 'put',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-              id: user.id
-            })
-          })
-            .then(response => response.json())
-            .then(count => {
-              setUser(Object.assign(user, { entries: count }))
-            })
-        }
+    fetch('http://localhost:3000/imageurl', {
+      method: 'post',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        imageUrl: imageUrl
       })
-      .then(result => { 
-        console.log(result)
-        const regions = result.outputs[0].data.regions;
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res) {
+        fetch('http://localhost:3000/image', {
+          method: 'put',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            id: user.id
+          })
+        })
+        .then(res => res.json())
+        .then(count => {
+          setUser(Object.assign(user, { entries: count }))
+        })
+        .catch(error => {console.log('/image route fetch error, ', error)})
+      }
+    })
+    .then(result => { 
+      const regions = result.outputs[0].data.regions;
 
-        regions.forEach(region => {
-          // Accessing and rounding the bounding box values
-          const boundingBox = region.region_info.bounding_box;
-          const topRow = boundingBox.top_row.toFixed(3);
-          const leftCol = boundingBox.left_col.toFixed(3);
-          const bottomRow = boundingBox.bottom_row.toFixed(3);
-          const rightCol = boundingBox.right_col.toFixed(3);
+      regions.forEach(region => {
+        // Accessing and rounding the bounding box values
+        const boundingBox = region.region_info.bounding_box;
+        const topRow = boundingBox.top_row.toFixed(3);
+        const leftCol = boundingBox.left_col.toFixed(3);
+        const bottomRow = boundingBox.bottom_row.toFixed(3);
+        const rightCol = boundingBox.right_col.toFixed(3);
 
-          region.data.concepts.forEach(concept => {
-            // Accessing and rounding the concept value
-            const name = concept.name;
-            const value = concept.value.toFixed(4);
+        region.data.concepts.forEach(concept => {
+          // Accessing and rounding the concept value
+          const name = concept.name;
+          const value = concept.value.toFixed(4);
 
-            console.log(`${name}: ${value} BBox: ${topRow}, ${leftCol}, ${bottomRow}, ${rightCol}`);                
-            displayFaceBox(calculateFaceLocation(topRow, leftCol, bottomRow, rightCol));
-          });
+          console.log(`${name}: ${value} BBox: ${topRow}, ${leftCol}, ${bottomRow}, ${rightCol}`);                
+          displayFaceBox(calculateFaceLocation(topRow, leftCol, bottomRow, rightCol));
         });
       })
-    .catch(error => {console.log('error', error)});
+      .catch(console.log)
+    })
+    .catch(error => {console.log('Clarifai API fetch error', error)})
   }
 
   const calculateFaceLocation = (topRow, leftCol, bottomRow, rightCol) => {
@@ -160,7 +128,6 @@ function App() {
 
   return (
     <>
-      {/*<ParticlesBg type="circle" bg={true} />*/}
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <Logo />
         <Navigation 
@@ -187,12 +154,14 @@ function App() {
           </div>
 
         : ( 
-            route === 'signin' 
+            route === 'signin' || route === 'signout'
               ? <Signin 
+                  route={route}
                   loadUser={loadUser} 
                   onRouteChange={onRouteChange} 
                 />
               : <Register 
+                  route={route}
                   loadUser={loadUser} 
                   onRouteChange={onRouteChange} 
                 />
